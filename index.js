@@ -1,18 +1,17 @@
 ////////// Dashboard
-
 require('dotenv').config()
 
 const express = require('express')
 const app = express()
 const cors = require('cors')
 const { Client } = require('pg')
+const connectionString = "postgres://callie:callie@localhost:5432/practicedb"
 
-const client = new Client('postgresql://localhost:5432/practicedb?user=callie&password=callie')
+const client = new Client({connectionString})
 client.connect().then(response => console.log(response))
 
 app.use(express.json())
 app.use(cors())
-
 
 const port = 3002
 
@@ -22,11 +21,11 @@ app.get("/", (req, res) => {
 
 app.post('/v1/traces', (req, res) => {
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
-  allSpansArray.forEach(element => {
+   allSpansArray.forEach(element => {
     const multiLibrarySpans = element.spans
     const text = 'INSERT into spans(span_id, trace_id, parent_span_id, start_time, end_time, span_tags) VALUES($1, $2, $3, $4, $5, $6) RETURNING *'
     multiLibrarySpans.forEach(span => {
-      const values = [span.traceId, span.spanId, span.parentSpanId, span.startTimeUnixNano, span.endTimeUnixNano, span.attributes]
+      const values = [span.spanId, span.traceId, span.parentSpanId, span.startTimeUnixNano, span.endTimeUnixNano, JSON.stringify(span.attributes)]
       client.query(text, values, (err, res) => {
         if (err) {
           console.log(err.stack)
@@ -34,7 +33,8 @@ app.post('/v1/traces', (req, res) => {
           console.log(res.rows)
         }
       })
-  });
+    });
+  })
   res.send("ok")
 })
 
