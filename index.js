@@ -12,7 +12,6 @@ app.get("/", (req, res) => {
 })
 
 app.post('/v1/traces', (req, res) => {
-  console.log(req.body.resourceSpans[0]["instrumentationLibrarySpans"])
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
   allSpansArray.forEach(element => {
     const multiLibrarySpans = element.spans
