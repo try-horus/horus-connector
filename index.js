@@ -24,17 +24,16 @@ app.post('/v1/traces', (req, res) => {
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
   allSpansArray.forEach(element => {
     const multiLibrarySpans = element.spans
-
+    const text = 'INSERT into spans(span_id, trace_id, parent_span_id, start_time, end_time, span_tags) VALUES($1, $2, $3, $4, $5, $6) RETURNING *'
     multiLibrarySpans.forEach(span => {
-      console.log(span.traceId)
-      console.log(span.spanId)
-      console.log(span.parentSpanId)
-      console.log(span.startTimeUnixNano)
-      console.log(span.endTimeUnixNano)
-      // We don't know what are the span
-      // tags and the resource tags
-      console.log("-------------------")
-    })
+      const values = [span.traceId, span.spanId, span.parentSpanId, span.startTimeUnixNano, span.endTimeUnixNano, span.attributes]
+      client.query(text, values, (err, res) => {
+        if (err) {
+          console.log(err.stack)
+        } else {
+          console.log(res.rows)
+        }
+      })
   });
   res.send("ok")
 })
