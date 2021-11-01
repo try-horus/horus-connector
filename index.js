@@ -1,9 +1,18 @@
 ////////// Dashboard
+
+require('dotenv').config()
+
 const express = require('express')
 const app = express()
 const cors = require('cors')
+const { Client } = require('pg')
+
+const client = new Client('postgresql://localhost:5432/practicedb?user=callie&password=callie')
+client.connect().then(response => console.log(response))
+
 app.use(express.json())
 app.use(cors())
+
 
 const port = 3002
 
