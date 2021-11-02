@@ -40,8 +40,9 @@ app.post('/v1/traces', (req, res) => {
 
 app.post('/v1/metrics', (req, res) => {
   //console.log(JSON.stringify(req.body, null, 2))
-  const allMetricsObject = req.body[0].instrumentationLibraryMetrics[0].metrics[0]
-  console.log("FEAR ME I AM THE METRICS OBJECT", allMetricsObject)
+  const allMetricsObject = req.body.resourceMetrics[0].instrumentationLibraryMetrics[0].metrics[0]
+  const dataPoints = allMetricsObject.doubleSum.dataPoints[0]
+  console.log("FEAR ME I AM THE METRICS OBJECT", allMetricsObject, dataPoints)
 
   res.type('json')
 })
