@@ -39,10 +39,13 @@ app.post('/v1/traces', (req, res) => {
 })
 
 app.post('/v1/metrics', (req, res) => {
-  //console.log(JSON.stringify(req.body, null, 2))
+  console.log(JSON.stringify(req.body, null, 2))
   const allMetricsObject = req.body.resourceMetrics[0].instrumentationLibraryMetrics[0].metrics[0]
   const dataPoints = allMetricsObject.doubleSum.dataPoints[0]
-  console.log("FEAR ME I AM THE METRICS OBJECT", allMetricsObject, dataPoints)
+  //console.log("FEAR ME I AM THE METRICS OBJECT", allMetricsObject, dataPoints)
+  
+  const text = 'INSERT INTO metricstable(name, description, start_time, value, labels) VALUES($1, $2, $3, $4, $5) RETURNING *'
+
 
   res.type('json')
 })
