@@ -8,7 +8,7 @@ const { Client } = require('pg')
 const connectionString = "postgres://callie:callie@localhost:5432/practicedb"
 
 const client = new Client({connectionString})
-client.connect().then(response => console.log(response))
+client.connect().then(response => console.log("Connected"))
 
 app.use(express.json())
 app.use(cors())
@@ -30,7 +30,7 @@ app.post('/v1/traces', (req, res) => {
         if (err) {
           console.log(err.stack)
         } else {
-          console.log(res.rows)
+          //console.log(res.rows)
         }
       })
     });
@@ -39,8 +39,9 @@ app.post('/v1/traces', (req, res) => {
 })
 
 app.post('/v1/metrics', (req, res) => {
-  console.log(JSON.stringify(req.body, null, 2))
-  console.log("NEW REQUEST!!!!")
+  //console.log(JSON.stringify(req.body, null, 2))
+  const allMetricsArray = req.body.resource
+
   res.type('json')
 })
 
