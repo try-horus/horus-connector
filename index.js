@@ -40,7 +40,7 @@ app.post('/v1/traces', (req, res) => {
 
 app.post('/v1/metrics', (req, res) => {
   //console.log(JSON.stringify(req.body, null, 2))
-  const allMetricsObject = req.body.instrumentationLibraryMetrics[0].metrics[0]
+  const allMetricsObject = req.body.instrumentationLibraryMetrics
   console.log("FEAR ME I AM THE METRICS OBJECT", allMetricsObject)
 
   res.type('json')
