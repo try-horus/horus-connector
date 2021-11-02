@@ -39,7 +39,7 @@ app.post('/v1/traces', (req, res) => {
 })
 
 app.post('/v1/metrics', (req, res) => {
-  //console.log(JSON.stringify(req.body, null, 2))
+  console.log(JSON.stringify(req.body, null, 2))
   const allMetricsArray = req.body.resource
 
   res.type('json')
