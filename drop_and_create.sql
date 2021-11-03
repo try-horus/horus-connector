@@ -13,7 +13,8 @@ CREATE TABLE spans (
   trace_id varchar NOT NULL,
   parent_span_id varchar,
   start_time int NOT NULL,
-  end_time int NOT NULL
+  end_time int NOT NULL,
+  instrumentation_library varchar NOT NULL
 );
 
 CREATE TABLE events (
@@ -22,25 +23,11 @@ CREATE TABLE events (
   event_time int NOT NULL
 );
 
-CREATE TABLE attribute_values (
+CREATE TABLE span_attributes (
   id serial PRIMARY KEY,
-  value varchar NOT NULL
+  span_id varchar NOT NULL,
+  attribute_key varchar NOT NULL,
+  attribute_value varchar NOT NULL
 );
 
-CREATE TABLE attribute_keys (
-  id serial PRIMARY KEY,
-  key varchar NOT NULL
-);
-
-CREATE TABLE source_types (
-  id serial PRIMARY KEY,
-  type varchar NOT NULL
-);
-
-CREATE TABLE attributes (
-  id serial PRIMARY KEY,
-  value_id int NOT NULL REFERENCES attribute_values(id),
-  key_id int NOT NULL REFERENCES attribute_keys(id),
-  source_type int NOT NULL REFERENCES source_types(id),
-  source_id varchar NOT NULL
-);
+SELECT * FROM spans;
