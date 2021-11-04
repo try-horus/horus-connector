@@ -6,7 +6,7 @@
 CREATE TABLE rps (
   name varchar NOT NULL,
   description varchar,
-  time bigint NOT NULL,
+  time timestamp NOT NULL,
   value int NOT NULL,
   labels jsonb
 );
@@ -14,7 +14,7 @@ CREATE TABLE rps (
 CREATE TABLE eps (
   name varchar NOT NULL,
   description varchar,
-  time bigint NOT NULL,
+  time timestamp NOT NULL,
   value int NOT NULL,
   labels jsonb
 );
