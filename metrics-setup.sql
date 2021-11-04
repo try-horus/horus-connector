@@ -6,7 +6,7 @@
 CREATE TABLE rps (
   name varchar NOT NULL,
   description varchar,
-  start_time bigint NOT NULL,
+  time bigint NOT NULL,
   value int NOT NULL,
   labels jsonb
 );
@@ -14,7 +14,7 @@ CREATE TABLE rps (
 CREATE TABLE eps (
   name varchar NOT NULL,
   description varchar,
-  start_time bigint NOT NULL,
+  time bigint NOT NULL,
   value int NOT NULL,
   labels jsonb
 );
@@ -23,7 +23,7 @@ CREATE TABLE eps (
 CREATE TABLE rps_per_endpoint (
   name varchar NOT NULL,
   description varchar,
-  start_time bigint NOT NULL,
+  time bigint NOT NULL,
   value int NOT NULL,
   labels jsonb
 );
