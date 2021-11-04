@@ -43,12 +43,20 @@ app.post('/v1/metrics', (req, res) => {
   if (!req.body.resourceMetrics[0]) return;
   
   console.log(JSON.stringify(req.body, null, 2))
+  
   const allMetricsArray = req.body.resourceMetrics[0].instrumentationLibraryMetrics[0].metrics
-  //console.log("FEAR ME I AM THE METRICS OBJECT", allMetricsObject, dataPoints)
-  const text = 'INSERT INTO metricstable(name, description, time, value, labels) VALUES($1, $2, to_timestamp($3), $4, $5) RETURNING *'
+  let tableName;
 
   allMetricsArray.forEach(metric => {
+
+    if (metric.name === "request_count") {
+      tableName = 'rps'
+    } else if (metric.name === "error_count") {
+      tableName = 'eps'
+    }
+
     const dataPoints = metric.doubleSum.dataPoints[0]
+    const text = `INSERT INTO ${tableName}(name, description, time, value, labels) VALUES($1, $2, to_timestamp($3), $4, $5) RETURNING *`
     const values = [metric.name, metric.description, Date.now()/1000, dataPoints.value, JSON.stringify(dataPoints.labels)]
 
     client.query(text, values, (err, res) => {
@@ -60,12 +68,7 @@ app.post('/v1/metrics', (req, res) => {
     })
   })
 
-
-
-
-
-
   res.type('json')
 })
 
-app.listen(port, () => console.log("Listening on the port"))
+app.listen(port, () => console.log("Listening on the port 3002"))
