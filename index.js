@@ -5,10 +5,14 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const { Client } = require('pg')
-const connectionString = "postgres://callie:callie@localhost:5432/practicedb"
+//const connectionString = "postgres://callie:callie@localhost:5432/practicedb"
+const connectionString = "postgres://juan:juan@localhost:5432/horus"
+
 
 const client = new Client({connectionString})
-client.connect().then(response => console.log("Connected"))
+client.connect()
+  .then(() => console.log("Connected"))
+  .catch(error => console.log(error))
 
 app.use(express.json())
 app.use(cors())
@@ -19,21 +23,88 @@ app.get("/", (req, res) => {
   res.json("Hello World")
 })
 
-app.post('/v1/traces', (req, res) => {
+/*
+const addNewTraceToDatabase = async (traceId) => {
+  const createTraceText = 'INSERT INTO traces(trace_id) VALUES($1) RETURNING *'
+
+  try {
+    const res = await client.query(createTraceText, [traceId])//, async (err, res) => {
+    //   if (err) {
+    //     console.log(err.stack)
+    //   } else {
+    //     console.log(res.rows)
+    //   }
+    //})
+    //console.log(res.rows)
+    console.log("this should get printed first")
+  } catch(e) {
+    console.log(e)
+  }
+}*/
+
+app.post('/v1/traces', async (req, res) => {
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
-  const text = 'INSERT into spans(span_id, trace_id, parent_span_id, start_time, end_time, span_tags) VALUES($1, $2, $3, $4, $5, $6) RETURNING *'
-  
-   allSpansArray.forEach(element => {
-    const multiLibrarySpans = element.spans
-    multiLibrarySpans.forEach(span => {
-      const values = [span.spanId, span.traceId, span.parentSpanId, span.startTimeUnixNano, span.endTimeUnixNano, JSON.stringify(span.attributes)]
-      client.query(text, values, (err, res) => {
+  const traceId = allSpansArray[0]["spans"][0]["traceId"]
+
+  const checkIfTraceExists = 'SELECT * FROM traces WHERE trace_id=$1'
+  const createSpanText = 'INSERT INTO spans(span_id, trace_id, parent_span_id, span_name, start_time, end_time, span_latency, instrumentation_library, span_attributes) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *'
+  const createTraceText = 'INSERT INTO traces(trace_id, root_span_id, start_time, end_time, trace_latency) VALUES($1, $2, $3, $4, $5) RETURNING *'
+  //const updateTraceText = 'UPDATE traces SET root_span_id=$1, start_time=$2, end_time=$3 WHERE trace_id=$4'
+
+  // try {
+  //   const res = await client.query(checkIfTraceExists, [traceId])//, async (err, res) => {
+  //   //   if (err) {
+  //   //     console.log(err.stack)
+  //   //   } else {
+  //   //     console.log(res.rows)
+  //   //     if (res.rows.length === 0) {
+  //   //       await addNewTraceToDatabase(traceId)
+  //   //     }
+  //   //   }
+  //   // })
+  //   console.log(res.rows)
+  //   if (res.rows.length === 0) {
+  //     console.log(traceId)
+  //     await addNewTraceToDatabase(traceId)
+  //   }
+  // } catch(e) {
+  //   console.log(e)
+  // }
+  // console.log("this should get printed second")
+  /*
+    I have to get the data from which library generated the span
+    If a span is the root, update the traces table with info
+    from this span
+  */
+
+ 
+  allSpansArray.forEach(element => {
+    const spansFromOneLibrary = element.spans
+    const instrumentationLibrary = element["instrumentationLibrary"]["name"]
+   
+    spansFromOneLibrary.forEach(span => {
+      const spanLatency = span.endTimeUnixNano - span.startTimeUnixNano
+      const values = [span.spanId, span.traceId, span.parentSpanId, span.name, span.startTimeUnixNano, span.endTimeUnixNano, spanLatency, instrumentationLibrary, JSON.stringify(span.attributes)]
+      client.query(createSpanText, values, (err, res) => {
         if (err) {
           console.log(err.stack)
         } else {
           console.log(res.rows[0])
         }
       })
+
+      if (span.parentSpanId === undefined) {
+        const traceLatency = spanLatency
+
+        const values = [traceId, span.spanId, span.startTimeUnixNano, span.endTimeUnixNano, traceLatency]
+        client.query(createTraceText, values, (err, res) => {
+          if (err) {
+            console.log(err.stack)
+          } else {
+            console.log(res.rows[0])
+          }
+        })
+      }
     });
   })
   res.send("ok")
