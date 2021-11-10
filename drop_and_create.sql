@@ -15,7 +15,7 @@ CREATE TABLE spans (
   parent_span_id varchar,
   start_time timestamp NOT NULL,
   end_time timestamp NOT NULL,
-  span_latency int NOT NULL,
+  span_latency decimal NOT NULL,
   instrumentation_library varchar NOT NULL,
   span_attributes jsonb NOT NULL,
   status_code int
@@ -23,7 +23,7 @@ CREATE TABLE spans (
 
 CREATE TABLE traces (
   trace_id varchar PRIMARY KEY,
-  trace_latency int NOT NULL,
+  trace_latency decimal NOT NULL,
   root_span_http_method varchar,
   root_span_endpoint varchar,
   root_span_id varchar NOT NULL,
