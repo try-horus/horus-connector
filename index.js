@@ -72,6 +72,7 @@ app.post('/v1/traces', async (req, res) => {
       try {
         client.query(createSpanText, values, (err, res) => {
           if (err) {
+            console.log("\nError at insertion-time\n")
             console.log(err.stack)
           } else {
             console.log(res.rows[0])
