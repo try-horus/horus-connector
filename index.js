@@ -5,7 +5,7 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const { Client } = require('pg')
-const connectionString = "postgres://juan:juan@localhost:5432/horus"
+const connectionString = "postgres://callie:callie@localhost:5432/horus"
 
 
 const client = new Client({connectionString})
@@ -33,7 +33,7 @@ app.post('/v1/traces', async (req, res) => {
     const instrumentationLibrary = element["instrumentationLibrary"]["name"]
 
     spansFromOneLibrary.forEach(span => {
-      const nanoToMiliSeconds = 1_000_000;
+      const nanoToMiliSeconds = 1000000;
       const spanLatency = (span.endTimeUnixNano - span.startTimeUnixNano)/nanoToMiliSeconds;
       const startTimestamp = new Date(span.startTimeUnixNano/nanoToMiliSeconds);
       const endTimestamp = new Date(span.endTimeUnixNano/nanoToMiliSeconds);
