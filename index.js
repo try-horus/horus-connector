@@ -56,7 +56,7 @@ app.post('/v1/traces', async (req, res) => {
         span.spanId,
         span.name,
         !!span.traceId ? span.traceId : null,
-        span.parentSpanId,
+        !!span.parentSpanId ? span.parentSpanId : null,
         startTimestamp,
         endTimestamp,
         spanLatency,
@@ -68,13 +68,17 @@ app.post('/v1/traces', async (req, res) => {
       console.log(values)
 
       // Create span
-      client.query(createSpanText, values, (err, res) => {
-        if (err) {
-          console.log(err.stack)
-        } else {
-          console.log(res.rows[0])
-        }
-      })
+      try {
+        client.query(createSpanText, values, (err, res) => {
+          if (err) {
+            console.log(err.stack)
+          } else {
+            console.log(res.rows[0])
+          }
+        });
+      } catch(err) {
+        console.log(err);
+      }
 
       // if root span create the trace
       if (span.parentSpanId === undefined) {
