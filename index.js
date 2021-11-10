@@ -55,7 +55,7 @@ app.post('/v1/traces', async (req, res) => {
       const values = [
         span.spanId,
         span.name,
-        span.traceId,
+        !!span.traceId ? span.traceId : null,
         span.parentSpanId,
         startTimestamp,
         endTimestamp,
