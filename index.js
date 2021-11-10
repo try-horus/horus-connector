@@ -56,15 +56,15 @@ app.post('/v1/traces', async (req, res) => {
         span.spanId,
         span.name,
         !!span.traceId ? span.traceId : null,
-        span.parentSpanId,
-        startTimestamp,
+        !!span.parentSpanId ? span.parentSpanId : null,
+	startTimestamp,
         endTimestamp,
         spanLatency,
         instrumentationLibrary,
         JSON.stringify(span.attributes),
         statusCode,
       ];
-
+	console.log(!!span.traceId ? span.traceId : null)
       console.log(values)
 
       // Create span
