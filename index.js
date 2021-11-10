@@ -5,7 +5,6 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const { Client } = require('pg')
-//const connectionString = "postgres://callie:callie@localhost:5432/practicedb"
 const connectionString = "postgres://juan:juan@localhost:5432/horus"
 
 
@@ -23,68 +22,49 @@ app.get("/", (req, res) => {
   res.json("Hello World")
 })
 
-/*
-const addNewTraceToDatabase = async (traceId) => {
-  const createTraceText = 'INSERT INTO traces(trace_id) VALUES($1) RETURNING *'
-
-  try {
-    const res = await client.query(createTraceText, [traceId])//, async (err, res) => {
-    //   if (err) {
-    //     console.log(err.stack)
-    //   } else {
-    //     console.log(res.rows)
-    //   }
-    //})
-    //console.log(res.rows)
-    console.log("this should get printed first")
-  } catch(e) {
-    console.log(e)
-  }
-}*/
-
 app.post('/v1/traces', async (req, res) => {
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
-  const traceId = allSpansArray[0]["spans"][0]["traceId"]
 
-  const checkIfTraceExists = 'SELECT * FROM traces WHERE trace_id=$1'
-  const createSpanText = 'INSERT INTO spans(span_id, trace_id, parent_span_id, span_name, start_time, end_time, span_latency, instrumentation_library, span_attributes) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *'
-  const createTraceText = 'INSERT INTO traces(trace_id, root_span_id, start_time, end_time, trace_latency) VALUES($1, $2, $3, $4, $5) RETURNING *'
-  //const updateTraceText = 'UPDATE traces SET root_span_id=$1, start_time=$2, end_time=$3 WHERE trace_id=$4'
+  const createSpanText = 'INSERT INTO spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *'
+  const createTraceText = 'INSERT INTO traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time) VALUES($1, $2, $3, $4, $5, $6) RETURNING *'
 
-  // try {
-  //   const res = await client.query(checkIfTraceExists, [traceId])//, async (err, res) => {
-  //   //   if (err) {
-  //   //     console.log(err.stack)
-  //   //   } else {
-  //   //     console.log(res.rows)
-  //   //     if (res.rows.length === 0) {
-  //   //       await addNewTraceToDatabase(traceId)
-  //   //     }
-  //   //   }
-  //   // })
-  //   console.log(res.rows)
-  //   if (res.rows.length === 0) {
-  //     console.log(traceId)
-  //     await addNewTraceToDatabase(traceId)
-  //   }
-  // } catch(e) {
-  //   console.log(e)
-  // }
-  // console.log("this should get printed second")
-  /*
-    I have to get the data from which library generated the span
-    If a span is the root, update the traces table with info
-    from this span
-  */
-
- 
   allSpansArray.forEach(element => {
     const spansFromOneLibrary = element.spans
     const instrumentationLibrary = element["instrumentationLibrary"]["name"]
-   
+
     spansFromOneLibrary.forEach(span => {
-      const spanLatency = span.endTimeUnixNano - span.startTimeUnixNano
-      const values = [span.spanId, span.traceId, span.parentSpanId, span.name, span.startTimeUnixNano, span.endTimeUnixNano, spanLatency, instrumentationLibrary, JSON.stringify(span.attributes)]
+      const nanoToMiliSeconds = 1_000_000;
+      const spanLatency = (span.endTimeUnixNano - span.startTimeUnixNano)/nanoToMiliSeconds;
+      const startTimestamp = new Date(span.startTimeUnixNano/nanoToMiliSeconds);
+      const endTimestamp = new Date(span.endTimeUnixNano/nanoToMiliSeconds);
+
+      // Retrieve attribute values for span and trace SQL insertion
+      let httpMethod, endpoint, statusCode;
+
+      span.attributes.forEach(attribute => {
+        if (attribute.key === "http.method") {
+          httpMethod = attribute.value.stringValue;
+        } else if (attribute.key === "http.target") {
+          endpoint = attribute.value.stringValue;
+        } else if (attribute.key === "http.status_code") {
+          statusCode = attribute.value.intValue;
+        }
+      })
+
+      const values = [
+        span.spanId,
+        span.name,
+        span.traceId,
+        span.parentSpanId,
+        startTimestamp,
+        endTimestamp,
+        spanLatency,
+        instrumentationLibrary,
+        JSON.stringify(span.attributes),
+        statusCode,
+      ];
+
+      // Create span
       client.query(createSpanText, values, (err, res) => {
         if (err) {
           console.log(err.stack)
@@ -93,10 +73,12 @@ app.post('/v1/traces', async (req, res) => {
         }
       })
 
+      // if root span create the trace
       if (span.parentSpanId === undefined) {
-        const traceLatency = spanLatency
+        const traceLatency = spanLatency;
 
-        const values = [traceId, span.spanId, span.startTimeUnixNano, span.endTimeUnixNano, traceLatency]
+        const values = [traceId, traceLatency, httpMethod, endpoint, span.spanId, startTimestamp];
+
         client.query(createTraceText, values, (err, res) => {
           if (err) {
             console.log(err.stack)
@@ -107,14 +89,15 @@ app.post('/v1/traces', async (req, res) => {
       }
     });
   })
+
   res.send("ok")
 })
 
 app.post('/v1/metrics', (req, res) => {
   if (!req.body.resourceMetrics[0]) return;
-  
+
   console.log(JSON.stringify(req.body, null, 2))
-  
+
   const allMetricsArray = req.body.resourceMetrics[0].instrumentationLibraryMetrics[0].metrics
   let tableName;
 
