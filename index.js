@@ -62,7 +62,7 @@ app.post('/v1/traces', async (req, res) => {
         spanLatency,
         instrumentationLibrary,
         JSON.stringify(span.attributes),
-        statusCode,
+        !!statusCode ? statusCode : null,
       ];
 
       console.log(!!span.traceId ? span.traceId : null)
