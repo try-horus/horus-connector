@@ -65,6 +65,7 @@ app.post('/v1/traces', async (req, res) => {
         statusCode,
       ];
 
+      console.log(!!span.traceId ? span.traceId : null)
       console.log(values)
 
       // Create span
