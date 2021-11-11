@@ -5,12 +5,13 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const { Client } = require('pg')
-const connectionString = "postgres://callie:callie@localhost:5432/horus"
+//const connectionString = "postgres://callie:callie@localhost:5432/horus"
+const connectionString = "postgres://juan:juan@localhost:5432/horus"
 
 
 const client = new Client({connectionString})
 client.connect()
-  .then(() => console.log("Connected"))
+  .then(() => console.log("Connected successfully to the database"))
   .catch(error => console.log(error))
 
 app.use(express.json())
@@ -32,10 +33,11 @@ app.post('/v1/traces', async (req, res) => {
     const instrumentationLibrary = element["instrumentationLibrary"]["name"]
 
     spansFromOneLibrary.forEach(span => {
-      const nanoToMiliSeconds = 1000000;
-      const spanLatency = (span.endTimeUnixNano - span.startTimeUnixNano)/nanoToMiliSeconds;
-      const startTimestamp = new Date(span.startTimeUnixNano/nanoToMiliSeconds);
-      const endTimestamp = new Date(span.endTimeUnixNano/nanoToMiliSeconds);
+      const nanoToMicroSeconds = 1000;
+      const nanoToMiliseconds = 1000000
+      const spanLatency = Math.round((span.endTimeUnixNano - span.startTimeUnixNano)/nanoToMicroSeconds);
+      const startTimestamp = new Date(span.startTimeUnixNano/nanoToMiliseconds);
+      const endTimestamp = new Date(span.endTimeUnixNano/nanoToMiliseconds);
 
       // Retrieve attribute values for span and trace SQL insertion
       let httpMethod, endpoint, statusCode;
