@@ -69,7 +69,6 @@ app.post('/v1/traces', async (req, res) => {
       console.log(values)
 
       // Create span
-      try {
         client.query(createSpanText, values, (err, res) => {
           if (err) {
             console.log("\nError at insertion-time\n")
@@ -78,15 +77,13 @@ app.post('/v1/traces', async (req, res) => {
             console.log(res.rows[0])
           }
         });
-      } catch(err) {
-        console.log(err);
-      }
 
       // if root span create the trace
       if (span.parentSpanId === undefined) {
+        // If root span goes to /v1/metrics delete all spans with the trace id and interrupt the looping
         const traceLatency = spanLatency;
 
-        const values = [traceId, traceLatency, httpMethod, endpoint, span.spanId, startTimestamp];
+        const values = [span.traceId, traceLatency, httpMethod, endpoint, span.spanId, startTimestamp];
 
         client.query(createTraceText, values, (err, res) => {
           if (err) {
