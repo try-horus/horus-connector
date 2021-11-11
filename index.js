@@ -23,9 +23,7 @@ app.get("/", (req, res) => {
 })
 
 app.post('/v1/traces', async (req, res) => {
-  console.log("Trace received");
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
-
   const createSpanText = 'INSERT INTO spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *'
   const createTraceText = 'INSERT INTO traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time) VALUES($1, $2, $3, $4, $5, $6) RETURNING *'
 
@@ -46,11 +44,15 @@ app.post('/v1/traces', async (req, res) => {
         if (attribute.key === "http.method") {
           httpMethod = attribute.value.stringValue;
         } else if (attribute.key === "http.target") {
-          endpoint = attribute.value.stringValue;
+          const value = attribute.value.stringValue;
+	  endpoint = value;
         } else if (attribute.key === "http.status_code") {
           statusCode = attribute.value.intValue;
         }
       })
+  
+      // Filter out traces from the metrics endpoint
+      if (endpoint === "/v1/metrics") { return }
 
       const values = [
         span.spanId,
@@ -65,8 +67,6 @@ app.post('/v1/traces', async (req, res) => {
         !!statusCode ? statusCode : null,
       ];
 
-      console.log(!!span.traceId ? span.traceId : null)
-      console.log(values)
 
       // Create span
       try {
@@ -79,6 +79,7 @@ app.post('/v1/traces', async (req, res) => {
           }
         });
       } catch(err) {
+	console.log("\nError at insertion-time\n")
         console.log(err);
       }
 
@@ -86,7 +87,7 @@ app.post('/v1/traces', async (req, res) => {
       if (span.parentSpanId === undefined) {
         const traceLatency = spanLatency;
 
-        const values = [traceId, traceLatency, httpMethod, endpoint, span.spanId, startTimestamp];
+        const values = [span.traceId, traceLatency, httpMethod, endpoint, span.spanId, startTimestamp];
 
         client.query(createTraceText, values, (err, res) => {
           if (err) {
