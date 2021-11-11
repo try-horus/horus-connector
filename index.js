@@ -5,8 +5,9 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const { Client } = require('pg')
+const connectionString = "postgres://callie:callie@localhost:5432/practicedb"
 //const connectionString = "postgres://callie:callie@localhost:5432/horus"
-const connectionString = "postgres://juan:juan@localhost:5432/horus"
+//const connectionString = "postgres://juan:juan@localhost:5432/horus"
 
 
 const client = new Client({connectionString})
@@ -116,25 +117,44 @@ app.post('/v1/metrics', (req, res) => {
   allMetricsArray.forEach(metric => {
 
     if (metric.name === "request_count") {
-      tableName = 'rps'
+      insertRPSorEPSdata(metric, "rps")
     } else if (metric.name === "error_count") {
-      tableName = 'eps'
+      insertRPSorEPSdata(metric, "eps")
+    } else if (metric.name === "request_latency") {
+      insertLatencyData(metric)    
     }
-
-    const dataPoints = metric.doubleSum.dataPoints[0]
-    const text = `INSERT INTO ${tableName}(name, description, time, value, labels) VALUES($1, $2, to_timestamp($3), $4, $5) RETURNING *`
-    const values = [metric.name, metric.description, Date.now()/1000, dataPoints.value, JSON.stringify(dataPoints.labels)]
-
-    client.query(text, values, (err, res) => {
-      if (err) {
-        console.log(err.stack)
-      } else {
-        console.log(res.rows[0])
-      }
-    })
   })
 
   res.type('json')
 })
+
+const insertRPSorEPSdata = (metric, tableName) => {
+  const dataPoints = metric.doubleSum.dataPoints[0]
+  const text = `INSERT INTO ${tableName}(time, value, labels) VALUES(to_timestamp($1), $2, $3) RETURNING *`
+  const values = [Date.now()/1000, dataPoints.value, JSON.stringify(dataPoints.labels)]
+
+  client.query(text, values, (err, res) => {
+    if (err) {
+      console.log(err.stack)
+    } else {
+      console.log(res.rows[0])
+    }
+  })	
+}
+
+const insertLatencyData = (metric) => {
+  const data = metric.doubleHistogram.dataPoints[0]
+  const text = `INSERT INTO latency VALUES(to_timestamp($1), $2, $3, $4, $5, $6, $7, $8) RETURNING *`
+  const [b500, b1000, b1500, b2000, b2500, bover2500] = datapoints.bucketCounts
+  const values = [Date.now()/1000, data.sum, b500, b1000, b1500, b2000, b2500, bover2500]
+  
+  client.query(text, values, (err, res) => {
+    if (err) {
+      console.log(err.stack)	    
+    } else {
+      console.log(res.rows[0])    
+    }
+  })
+}
 
 app.listen(port, () => console.log("Listening on the port 3002"))
