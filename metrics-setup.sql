@@ -17,7 +17,7 @@ CREATE TABLE eps (
 
 CREATE TABLE latency (
   time timestamp NOT NULL,
-  total_latency bigint,
+  total_latency double precision,
   bucket_500 int,
   bucket_1000 int,
   bucket_1500 int,
