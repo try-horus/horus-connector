@@ -4,16 +4,12 @@
 */
 
 CREATE TABLE rps (
-  name varchar NOT NULL,
-  description varchar,
   time timestamp NOT NULL,
   value int NOT NULL,
   labels jsonb
 );
 
 CREATE TABLE eps (
-  name varchar NOT NULL,
-  description varchar,
   time timestamp NOT NULL,
   value int NOT NULL,
   labels jsonb
