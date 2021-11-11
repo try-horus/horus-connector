@@ -15,6 +15,17 @@ CREATE TABLE eps (
   labels jsonb
 );
 
+CREATE TABLE latency (
+  time timestamp NOT NULL,
+  total_latency bigint,
+  bucket_500 int,
+  bucket_1000 int,
+  bucket_1500 int,
+  bucket_2000 int,
+  bucket_2500 int,
+  bucket_over_2500 int
+);
+
 /*
 CREATE TABLE rps_per_endpoint (
   name varchar NOT NULL,
