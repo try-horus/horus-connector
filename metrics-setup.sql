@@ -20,15 +20,5 @@ CREATE TABLE latency (
   total_latency double precision,
   bucket_500 int,
   bucket_1500 int,
-  bucket_over_1500 int,
+  bucket_over_1500 int
 );
-
-/*
-CREATE TABLE rps_per_endpoint (
-  name varchar NOT NULL,
-  description varchar,
-  time bigint NOT NULL,
-  value int NOT NULL,
-  labels jsonb
-);
-*/
