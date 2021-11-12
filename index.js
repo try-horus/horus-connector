@@ -26,7 +26,7 @@ app.get("/", (req, res) => {
 app.post('/v1/traces', async (req, res) => {
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
   const createSpanText = 'INSERT INTO spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *'
-  const createTraceText = 'INSERT INTO traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time) VALUES($1, $2, $3, $4, $5, $6) RETURNING *'
+  const createTraceText = 'INSERT INTO traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time, root_span_host) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING *'
 
   allSpansArray.forEach(element => {
     const spansFromOneLibrary = element.spans
@@ -40,7 +40,7 @@ app.post('/v1/traces', async (req, res) => {
       const endTimestamp = new Date(span.endTimeUnixNano/nanoToMiliseconds);
 
       // Retrieve attribute values for span and trace SQL insertion
-      let httpMethod, endpoint, statusCode;
+      let httpMethod, endpoint, statusCode, host;
 
       span.attributes.forEach(attribute => {
         if (attribute.key === "http.method") {
@@ -50,7 +50,9 @@ app.post('/v1/traces', async (req, res) => {
 	  endpoint = value;
         } else if (attribute.key === "http.status_code") {
           statusCode = attribute.value.intValue;
-        }
+        } else if (attribute.key === "http.host") {
+	  host = attribute.value.stringValue;
+	}
       })
   
       // Filter out traces from the metrics endpoint
@@ -89,7 +91,7 @@ app.post('/v1/traces', async (req, res) => {
       if (span.parentSpanId === undefined) {
         const traceLatency = spanLatency;
 
-        const values = [span.traceId, traceLatency, httpMethod, endpoint, span.spanId, startTimestamp];
+        const values = [span.traceId, traceLatency, httpMethod, endpoint, span.spanId, startTimestamp, host];
 
         client.query(createTraceText, values, (err, res) => {
           if (err) {
