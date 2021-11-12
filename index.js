@@ -5,8 +5,7 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const { Client } = require('pg')
-const connectionString = "postgres://callie:callie@localhost:5432/practicedb"
-//const connectionString = "postgres://callie:callie@localhost:5432/horus"
+const connectionString = "postgres://callie:callie@localhost:5432/horus"
 //const connectionString = "postgres://juan:juan@localhost:5432/horus"
 
 
@@ -144,9 +143,9 @@ const insertRPSorEPSdata = (metric, tableName) => {
 
 const insertLatencyData = (metric) => {
   const data = metric.doubleHistogram.dataPoints[0]
-  const text = `INSERT INTO latency VALUES(to_timestamp($1), $2, $3, $4, $5, $6, $7, $8) RETURNING *`
-  const [b500, b1000, b1500, b2000, b2500, bover2500] = data.bucketCounts
-  const values = [Date.now()/1000, parseFloat(data.sum), b500, b1000, b1500, b2000, b2500, bover2500]
+  const text = `INSERT INTO latency VALUES(to_timestamp($1), $2, $3, $4, $5) RETURNING *`
+  const [b500, b1500, bover1500] = data.bucketCounts
+  const values = [Date.now()/1000, parseFloat(data.sum), b500, b1500, bover1500]
   
   client.query(text, values, (err, res) => {
     if (err) {
