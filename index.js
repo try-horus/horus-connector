@@ -24,6 +24,7 @@ app.get("/", (req, res) => {
 })
 
 app.post('/v1/traces', async (req, res) => {
+  console.log(req.body)
   if (!req.body.resourceSpans) return
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
   const createSpanText = 'INSERT INTO spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *'
