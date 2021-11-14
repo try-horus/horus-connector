@@ -25,18 +25,18 @@ app.get("/", (req, res) => {
 
 app.post('/v1/traces', async (req, res) => {
   if (!req.body.resourceSpans) return
-  console.log("Do you make it this far?")
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
-  console.log(allSpansArray)
   const createSpanText = 'INSERT INTO spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *'
   const createTraceText = 'INSERT INTO traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time, root_span_host, contains_errors) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *'
   let traceContainsErrors = false
   
   allSpansArray.forEach(element => {
     const spansFromOneLibrary = element.spans
+    console.log(spansFromOneLibrary)
     const instrumentationLibrary = element["instrumentationLibrary"]["name"]
 
     spansFromOneLibrary.forEach(span => {
+      console.log("I AM A SPAN", span)
       const nanoToMicroSeconds = 1000;
       const nanoToMiliseconds = 1000000
       const spanLatency = Math.round((span.endTimeUnixNano - span.startTimeUnixNano)/nanoToMicroSeconds);
