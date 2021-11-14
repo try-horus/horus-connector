@@ -28,6 +28,7 @@ app.post('/v1/traces', async (req, res) => {
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
   const createSpanText = 'INSERT INTO spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *'
   const createTraceText = 'INSERT INTO traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time, root_span_host, contains_errors) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *'
+  const acceptableCodeBeginnings = ["2", "3"]
   let traceContainsErrors = false
   
   allSpansArray.forEach(element => {
@@ -52,7 +53,7 @@ app.post('/v1/traces', async (req, res) => {
 	  endpoint = value;
         } else if (attribute.key === "http.status_code") {
           statusCode = attribute.value.intValue;
-	  if (statusCode !== 200) traceContainsErrors = true
+	  if (!acceptableCodeBeginnings.includes(String(statusCode)[0])) traceContainsErrors = true
         } else if (attribute.key === "http.host") {
 	  host = attribute.value.stringValue;
 	}
