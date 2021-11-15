@@ -26,8 +26,9 @@ app.get("/", (req, res) => {
 app.post('/v1/traces', async (req, res) => {
   if (!req.body.resourceSpans) return
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
-  const createSpanText = 'INSERT INTO spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *'
-  const createTraceText = 'INSERT INTO traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time, root_span_host, contains_errors) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *'
+  const createSpanText = 'INSERT INTO spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, start_time_in_microseconds, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *'
+  const createTraceText = 'INSERT INTO traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time, contains_errors) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING *'
+
   const acceptableCodeBeginnings = ["2", "3"]
   let traceContainsErrors = false
   
@@ -41,6 +42,7 @@ app.post('/v1/traces', async (req, res) => {
       const spanLatency = Math.round((span.endTimeUnixNano - span.startTimeUnixNano)/nanoToMicroSeconds);
       const startTimestamp = new Date(span.startTimeUnixNano/nanoToMiliseconds);
       const endTimestamp = new Date(span.endTimeUnixNano/nanoToMiliseconds);
+      const startTimeInMicroseconds = Math.round(span.startTimeUnixNano/nanoToMicroSeconds)
 
       // Retrieve attribute values for span and trace SQL insertion
       let httpMethod, endpoint, statusCode, host;
@@ -69,6 +71,7 @@ app.post('/v1/traces', async (req, res) => {
         !!span.parentSpanId ? span.parentSpanId : null,
         startTimestamp,
         endTimestamp,
+	startTimeInMicroseconds,
         spanLatency,
         instrumentationLibrary,
         JSON.stringify(span.attributes),
