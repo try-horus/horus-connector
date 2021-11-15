@@ -1,6 +1,6 @@
 /* How to run file
   1. In postgres: \i <file path>
-  2. In the CLI with psql: psql -d postgres -f <file name>
+  2. In the CLI with psql: psql -d postgres -f drop_and_create.sql
 */
 
 DROP DATABASE IF EXISTS horus;
