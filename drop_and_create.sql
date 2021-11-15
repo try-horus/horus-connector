@@ -15,6 +15,7 @@ CREATE TABLE spans (
   parent_span_id varchar,
   start_time timestamp NOT NULL,
   end_time timestamp NOT NULL,
+  start_time_in_microseconds bigint NOT NULL,
   span_latency integer NOT NULL,
   instrumentation_library varchar NOT NULL,
   span_attributes jsonb NOT NULL,
