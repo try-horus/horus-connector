@@ -28,7 +28,8 @@ CREATE TABLE traces (
   root_span_http_method varchar,
   root_span_endpoint varchar,
   root_span_id varchar NOT NULL,
-  trace_start_time timestamp NOT NULL
+  trace_start_time timestamp NOT NULL,
+  contains_errors boolean NOT NULL DEFAULT FALSE
 );
 
 SELECT * FROM spans;
