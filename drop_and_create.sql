@@ -29,7 +29,26 @@ CREATE TABLE traces (
   root_span_endpoint varchar,
   root_span_id varchar NOT NULL,
   trace_start_time timestamp NOT NULL,
-  contains_errors boolean NOT NULL DEFAULT FALSE
+  contains_errors boolean NOT NULL DEFAULT FALSE,
+  root_span_host varchar
 );
 
-SELECT * FROM spans;
+CREATE TABLE rps (
+  time timestamp NOT NULL,
+  value int NOT NULL,
+  labels jsonb
+);
+
+CREATE TABLE eps (
+  time timestamp NOT NULL,
+  value int NOT NULL,
+  labels jsonb
+);
+
+CREATE TABLE latency (
+  time timestamp NOT NULL,
+  total_latency double precision,
+  bucket_500 int,
+  bucket_1500 int,
+  bucket_over_1500 int
+);
