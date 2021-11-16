@@ -5,13 +5,15 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const { Client } = require('pg')
-const connectionString = "postgres://callie:callie@localhost:5432/horus"
-//const connectionString = "postgres://juan:juan@localhost:5432/horus"
+const connectionString = `postgres://${process.env.POSTGRES_ADMIN}:${process.env.POSTGRES_PASSWORD}@${process.env.DB_CONTAINER_NAME}:${process.env.DB_PORT}/${process.env.DB_NAME}`
 
 
 const client = new Client({connectionString})
 client.connect()
-  .then(() => console.log("Connected successfully to the database"))
+  .then(() => {
+    console.log("Connected successfully to the database");
+    console.log(connectionString)
+  })
   .catch(error => console.log(error))
 
 app.use(express.json())
@@ -26,8 +28,8 @@ app.get("/", (req, res) => {
 app.post('/v1/traces', async (req, res) => {
   if (!req.body.resourceSpans) return
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
-  const createSpanText = 'INSERT INTO spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, start_time_in_microseconds, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *'
-  const createTraceText = 'INSERT INTO traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time, root_span_host, contains_errors) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *'
+  const createSpanText = 'INSERT INTO tsdb_spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, start_time_in_microseconds, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *'
+  const createTraceText = 'INSERT INTO tsdb_traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time, root_span_host, contains_errors) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *'
 
   const acceptableCodeBeginnings = ["2", "3"]
   let traceContainsErrors = false
@@ -52,14 +54,14 @@ app.post('/v1/traces', async (req, res) => {
           httpMethod = attribute.value.stringValue;
         } else if (attribute.key === "http.target") {
           const value = attribute.value.stringValue;
-	  endpoint = value;
+	        endpoint = value;
         } else if (attribute.key === "http.status_code") {
           statusCode = attribute.value.intValue;
-	  if (!acceptableCodeBeginnings.includes(String(statusCode)[0])) traceContainsErrors = true
+	        if (!acceptableCodeBeginnings.includes(String(statusCode)[0])) traceContainsErrors = true
         } else if (attribute.key === "http.host") {
-	  host = attribute.value.stringValue;
-	}
-      })
+          host = attribute.value.stringValue;
+        }
+      });
 
       // Filter out traces from the metrics endpoint
       if (endpoint === "/v1/metrics") { return }
@@ -71,7 +73,7 @@ app.post('/v1/traces', async (req, res) => {
         !!span.parentSpanId ? span.parentSpanId : null,
         startTimestamp,
         endTimestamp,
-	startTimeInMicroseconds,
+	      startTimeInMicroseconds,
         spanLatency,
         instrumentationLibrary,
         JSON.stringify(span.attributes),
@@ -80,19 +82,14 @@ app.post('/v1/traces', async (req, res) => {
 
 
       // Create span
-      try {
-        client.query(createSpanText, values, (err, res) => {
-          if (err) {
-            console.log("\nError at insertion-time\n")
-            console.log(err.stack)
-          } else {
-            console.log(res.rows[0])
-          }
-        });
-      } catch(err) {
-	console.log("\nError at insertion-time\n")
-        console.log(err);
-      }
+      client.query(createSpanText, values, (err, res) => {
+        if (err) {
+          console.log("\nError at insertion-time\n")
+          console.log(err.stack)
+        } else {
+          console.log(res.rows[0])
+        }
+      });
 
       // if root span create the trace
       if (span.parentSpanId === undefined) {
@@ -117,7 +114,7 @@ app.post('/v1/traces', async (req, res) => {
 app.post('/v1/metrics', (req, res) => {
   if (!req.body.resourceMetrics[0]) return;
 
-  console.log(JSON.stringify(req.body, null, 2))
+  // console.log(JSON.stringify(req.body, null, 2))
 
   const allMetricsArray = req.body.resourceMetrics[0].instrumentationLibraryMetrics[0].metrics
   let tableName;
@@ -138,7 +135,7 @@ app.post('/v1/metrics', (req, res) => {
 
 const insertRPSorEPSdata = (metric, tableName) => {
   const dataPoints = metric.doubleSum.dataPoints[0]
-  const text = `INSERT INTO ${tableName}(time, value, labels) VALUES(to_timestamp($1), $2, $3) RETURNING *`
+  const text = `INSERT INTO tsdb_${tableName}(time, value, labels) VALUES(to_timestamp($1), $2, $3) RETURNING *`
   const values = [Date.now()/1000, dataPoints.value, JSON.stringify(dataPoints.labels)]
 
   client.query(text, values, (err, res) => {
@@ -152,7 +149,7 @@ const insertRPSorEPSdata = (metric, tableName) => {
 
 const insertLatencyData = (metric) => {
   const data = metric.doubleHistogram.dataPoints[0]
-  const text = `INSERT INTO latency VALUES(to_timestamp($1), $2, $3, $4, $5) RETURNING *`
+  const text = `INSERT INTO tsdb_latency VALUES(to_timestamp($1), $2, $3, $4, $5) RETURNING *`
   const [b500, b1500, bover1500] = data.bucketCounts
   const values = [Date.now()/1000, parseFloat(data.sum), b500, b1500, bover1500]
 
