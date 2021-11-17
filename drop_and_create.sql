@@ -52,3 +52,11 @@ CREATE TABLE latency (
   bucket_1500 int,
   bucket_over_1500 int
 );
+
+SELECT create_hypertable('spans', 'start_time');
+SELECT create_hypertable('traces', 'trace_start_time');
+SELECT create_hypertable('rps', 'time');
+SELECT create_hypertable('eps', 'time');
+SELECT create_hypertable('latency', 'time');
+
+
