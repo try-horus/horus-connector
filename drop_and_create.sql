@@ -9,7 +9,7 @@ CREATE DATABASE horus;
 \c horus;
 
 CREATE TABLE spans (
-  span_id varchar PRIMARY KEY,
+  span_id varchar NOT NULL,
   span_name varchar NOT NULL,
   trace_id varchar,
   parent_span_id varchar,
@@ -23,7 +23,7 @@ CREATE TABLE spans (
 );
 
 CREATE TABLE traces (
-  trace_id varchar PRIMARY KEY,
+  trace_id varchar NOT NULL,
   trace_latency integer NOT NULL,
   root_span_http_method varchar,
   root_span_endpoint varchar,
@@ -52,6 +52,8 @@ CREATE TABLE latency (
   bucket_1500 int,
   bucket_over_1500 int
 );
+
+create extension timescaledb;
 
 SELECT create_hypertable('spans', 'start_time');
 SELECT create_hypertable('traces', 'trace_start_time');
