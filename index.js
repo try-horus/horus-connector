@@ -14,7 +14,7 @@ client.connect()
   .then(() => console.log("Connected successfully to the database"))
   .catch(error => console.log(error))
 
-app.use(express.json({limit: '25mb'}));
+app.use(express.json({limit: '50mb'}));
 app.use(cors())
 
 const port = 3002
