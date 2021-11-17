@@ -117,8 +117,6 @@ app.post('/v1/traces', async (req, res) => {
 app.post('/v1/metrics', (req, res) => {
   if (!req.body.resourceMetrics[0]) return;
 
-  console.log(JSON.stringify(req.body, null, 2))
-
   const allMetricsArray = req.body.resourceMetrics[0].instrumentationLibraryMetrics[0].metrics
   let tableName;
 
