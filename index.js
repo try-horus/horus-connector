@@ -31,7 +31,7 @@ app.post('/v1/traces', async (req, res) => {
 
   const acceptableCodeBeginnings = ["2", "3"]
   let traceContainsErrors = false
-  
+
   allSpansArray.forEach(element => {
     const spansFromOneLibrary = element.spans
     const instrumentationLibrary = element["instrumentationLibrary"]["name"]
@@ -60,7 +60,7 @@ app.post('/v1/traces', async (req, res) => {
 	  host = attribute.value.stringValue;
 	}
       })
-  
+
       // Filter out traces from the metrics endpoint
       if (endpoint === "/v1/metrics") { return }
 
@@ -127,7 +127,7 @@ app.post('/v1/metrics', (req, res) => {
     } else if (metric.name === "error_count") {
       insertRPSorEPSdata(metric, "eps")
     } else if (metric.name === "request_latency") {
-      insertLatencyData(metric)    
+      insertLatencyData(metric)
     }
   })
 
@@ -145,7 +145,7 @@ const insertRPSorEPSdata = (metric, tableName) => {
     } else {
       console.log(res.rows[0])
     }
-  })	
+  })
 }
 
 const insertLatencyData = (metric) => {
@@ -153,12 +153,12 @@ const insertLatencyData = (metric) => {
   const text = `INSERT INTO latency VALUES(to_timestamp($1), $2, $3, $4, $5) RETURNING *`
   const [b500, b1500, bover1500] = data.bucketCounts
   const values = [Date.now()/1000, parseFloat(data.sum), b500, b1500, bover1500]
-  
+
   client.query(text, values, (err, res) => {
     if (err) {
-      console.log(err.stack)	    
+      console.log(err.stack)
     } else {
-      console.log(res.rows[0])    
+      console.log(res.rows[0])
     }
   })
 }
