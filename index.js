@@ -5,13 +5,19 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const { Client } = require('pg')
+
 //const connectionString = "postgres://callie:callie@localhost:5432/horus"
 //const connectionString = "postgres://juan:juan@localhost:5432/horus"
-const connectionString = `postgres://horus_admin:horus_admin@localhost:5434/horus`
+//const connectionString = `postgres://horus_admin:horus_admin@localhost:5434/horus`
+const connectionString = `postgres://${process.env.POSTGRES_ADMIN}:${process.env.POSTGRES_PASSWORD}@${process.env.DB_CONTAINER_NAME}:${process.env.DB_PORT}/${process.env.DB_NAME}`
+
 
 const client = new Client({connectionString})
 client.connect()
-  .then(() => console.log("Connected successfully to the database"))
+  .then(() => {
+    console.log("Connected successfully to the database");
+    console.log(connectionString)
+  })
   .catch(error => console.log(error))
 
 app.use(express.json({limit: '50mb'}));
@@ -53,14 +59,14 @@ app.post('/v1/traces', async (req, res) => {
           httpMethod = attribute.value.stringValue;
         } else if (attribute.key === "http.target") {
           const value = attribute.value.stringValue;
-	  endpoint = value;
+	        endpoint = value;
         } else if (attribute.key === "http.status_code") {
           statusCode = attribute.value.intValue;
-	  if (!acceptableCodeBeginnings.includes(String(statusCode)[0])) traceContainsErrors = true
+	        if (!acceptableCodeBeginnings.includes(String(statusCode)[0])) traceContainsErrors = true
         } else if (attribute.key === "http.host") {
-	  host = attribute.value.stringValue;
-	}
-      })
+          host = attribute.value.stringValue;
+        }
+      });
 
       // Filter out traces from the metrics endpoint
       if (endpoint === "/v1/metrics") { return }
@@ -72,7 +78,7 @@ app.post('/v1/traces', async (req, res) => {
         !!span.parentSpanId ? span.parentSpanId : null,
         startTimestamp,
         endTimestamp,
-	startTimeInMicroseconds,
+	      startTimeInMicroseconds,
         spanLatency,
         instrumentationLibrary,
         JSON.stringify(span.attributes),
@@ -81,19 +87,15 @@ app.post('/v1/traces', async (req, res) => {
 
 
       // Create span
-      try {
-        client.query(createSpanText, values, (err, res) => {
-          if (err) {
-            console.log("\nError at insertion-time\n")
-            console.log(err.stack)
-          } else {
-            //console.log(res.rows[0])
-          }
-        });
-      } catch(err) {
-	console.log("\nError at insertion-time\n")
-        console.log(err);
-      }
+
+      client.query(createSpanText, values, (err, res) => {
+        if (err) {
+          console.log("\nError at insertion-time\n")
+          console.log(err.stack)
+        } else {
+          //console.log(res.rows[0])
+        }
+      });
 
       // if root span create the trace
       if (span.parentSpanId === undefined) {
@@ -155,6 +157,7 @@ const insertRPSorEPSdata = (metric, tableName) => {
 const insertLatencyData = (metric) => {
   const data = metric.doubleHistogram.dataPoints[0]
   const text = `INSERT INTO latency VALUES(to_timestamp($1), $2, $3, $4, $5)`
+
   const [b500, b1500, bover1500] = data.bucketCounts
   let currentDate = new Date()
   const offset = currentDate.getTimezoneOffset() * 60000
