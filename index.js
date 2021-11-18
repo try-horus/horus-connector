@@ -5,9 +5,9 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const { Client } = require('pg')
-const connectionString = "postgres://callie:callie@localhost:5432/horus"
+//const connectionString = "postgres://callie:callie@localhost:5432/horus"
 //const connectionString = "postgres://juan:juan@localhost:5432/horus"
-
+const connectionString = `postgres://horus_admin:horus_admin@localhost:5434/horus`
 
 const client = new Client({connectionString})
 client.connect()
@@ -26,8 +26,8 @@ app.get("/", (req, res) => {
 app.post('/v1/traces', async (req, res) => {
   if (!req.body.resourceSpans) return
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
-  const createSpanText = 'INSERT INTO spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, start_time_in_microseconds, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *'
-  const createTraceText = 'INSERT INTO traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time, root_span_host, contains_errors) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *'
+  const createSpanText = 'INSERT INTO tsdb_spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, start_time_in_microseconds, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *'
+  const createTraceText = 'INSERT INTO tsdb_traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time, root_span_host, contains_errors) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *'
 
   const acceptableCodeBeginnings = ["2", "3"]
   let traceContainsErrors = false
@@ -136,8 +136,12 @@ app.post('/v1/metrics', (req, res) => {
 
 const insertRPSorEPSdata = (metric, tableName) => {
   const dataPoints = metric.doubleSum.dataPoints[0]
-  const text = `INSERT INTO ${tableName}(time, value, labels) VALUES(to_timestamp($1), $2, $3) RETURNING *`
-  const values = [Date.now()/1000, dataPoints.value, JSON.stringify(dataPoints.labels)]
+  const text = `INSERT INTO tsdb_${tableName}(time, value, labels) VALUES(to_timestamp($1), $2, $3) RETURNING *`
+  let currentDate = new Date()
+  const offset = currentDate.getTimezoneOffset() * 60000
+  currentDate = new Date(currentDate.getTime() - offset)
+  const values = [currentDate.getTime()/1000, dataPoints.value, JSON.stringify(dataPoints.labels)]
+  //const values = [Date.now()/1000, dataPoints.value, JSON.stringify(dataPoints.labels)]
 
   client.query(text, values, (err, res) => {
     if (err) {
@@ -150,9 +154,13 @@ const insertRPSorEPSdata = (metric, tableName) => {
 
 const insertLatencyData = (metric) => {
   const data = metric.doubleHistogram.dataPoints[0]
-  const text = `INSERT INTO latency VALUES(to_timestamp($1), $2, $3, $4, $5) RETURNING *`
+  const text = `INSERT INTO tsdb_latency VALUES(to_timestamp($1), $2, $3, $4, $5) RETURNING *`
   const [b500, b1500, bover1500] = data.bucketCounts
-  const values = [Date.now()/1000, parseFloat(data.sum), b500, b1500, bover1500]
+  let currentDate = new Date()
+  const offset = currentDate.getTimezoneOffset() * 60000
+  currentDate = new Date(currentDate.getTime() - offset)
+  const values = [currentDate.getTime()/1000, parseFloat(data.sum), b500, b1500, bover1500]
+  //const values = [Date.now()/1000, parseFloat(data.sum), b500, b1500, bover1500]
 
   client.query(text, values, (err, res) => {
     if (err) {
