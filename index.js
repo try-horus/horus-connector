@@ -6,10 +6,10 @@ const app = express()
 const cors = require('cors')
 const { Client } = require('pg')
 
-//const connectionString = "postgres://callie:callie@localhost:5432/horus"
+const connectionString = "postgres://callie:callie@localhost:5432/horus"
 //const connectionString = "postgres://juan:juan@localhost:5432/horus"
 //const connectionString = `postgres://horus_admin:horus_admin@localhost:5434/horus`
-const connectionString = `postgres://${process.env.POSTGRES_ADMIN}:${process.env.POSTGRES_PASSWORD}@${process.env.DB_CONTAINER_NAME}:${process.env.DB_PORT}/${process.env.DB_NAME}`
+//const connectionString = `postgres://${process.env.POSTGRES_ADMIN}:${process.env.POSTGRES_PASSWORD}@${process.env.DB_CONTAINER_NAME}:${process.env.DB_PORT}/${process.env.DB_NAME}`
 
 
 const client = new Client({connectionString})
