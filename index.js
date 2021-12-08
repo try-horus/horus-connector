@@ -6,10 +6,10 @@ const app = express()
 const cors = require('cors')
 const { Client } = require('pg')
 
-const connectionString = "postgres://callie:callie@localhost:5432/horus"
+//const connectionString = "postgres://callie:callie@localhost:5432/horus"
 //const connectionString = "postgres://juan:juan@localhost:5432/horus"
 //const connectionString = `postgres://horus_admin:horus_admin@localhost:5434/horus`
-//const connectionString = `postgres://${process.env.POSTGRES_ADMIN}:${process.env.POSTGRES_PASSWORD}@${process.env.DB_CONTAINER_NAME}:${process.env.DB_PORT}/${process.env.DB_NAME}`
+const connectionString = `postgres://${process.env.POSTGRES_ADMIN}:${process.env.POSTGRES_PASSWORD}@${process.env.DB_CONTAINER_NAME}:${process.env.DB_PORT}/${process.env.DB_NAME}`
 
 
 const client = new Client({connectionString})
@@ -30,21 +30,38 @@ app.get("/", (req, res) => {
 })
 
 app.post('/v1/traces', async (req, res) => {
-  console.log("A trace has hit me!")
   if (!req.body.resourceSpans) return
   const allSpansArray = req.body.resourceSpans[0]["instrumentationLibrarySpans"]
   const createSpanText = 'INSERT INTO spans(span_id, span_name, trace_id, parent_span_id, start_time, end_time, start_time_in_microseconds, span_latency, instrumentation_library, span_attributes, status_code) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)'
   const createTraceText = 'INSERT INTO traces(trace_id, trace_latency, root_span_http_method, root_span_endpoint, root_span_id, trace_start_time, root_span_host, contains_errors) VALUES($1, $2, $3, $4, $5, $6, $7, $8)'
-
+  
 
   const acceptableCodeBeginnings = ["2", "3"]
-  let traceContainsErrors = false
 
   allSpansArray.forEach(element => {
-    const spansFromOneLibrary = element.spans
+    const spansFromOneLibraryAndOneBatch = element.spans
     const instrumentationLibrary = element["instrumentationLibrary"]["name"]
 
-    spansFromOneLibrary.forEach(span => {
+    const errorInTheTrace = {}
+
+    if (instrumentationLibrary.includes("http")) {
+      spansFromOneLibraryAndOneBatch.forEach(span => {
+        const traceId = span.traceId
+        if (errorInTheTrace[traceId] === undefined) {
+          errorInTheTrace[traceId] = false
+        }
+        span.attributes.forEach(attribute => {
+          if (attribute.key === "http.status_code") {
+            statusCode = attribute.value.intValue;
+            if (!acceptableCodeBeginnings.includes(String(statusCode)[0])) errorInTheTrace[traceId] = true
+          }
+        });
+
+      });
+    }
+    
+
+    spansFromOneLibraryAndOneBatch.forEach(span => {
       const nanoToMicroSeconds = 1000;
       const nanoToMiliseconds = 1000000
       const spanLatency = Math.round((span.endTimeUnixNano - span.startTimeUnixNano)/nanoToMicroSeconds);
@@ -55,19 +72,20 @@ app.post('/v1/traces', async (req, res) => {
       // Retrieve attribute values for span and trace SQL insertion
       let httpMethod, endpoint, statusCode, host;
 
-      span.attributes.forEach(attribute => {
-        if (attribute.key === "http.method") {
-          httpMethod = attribute.value.stringValue;
-        } else if (attribute.key === "http.target") {
-          const value = attribute.value.stringValue;
-	        endpoint = value;
-        } else if (attribute.key === "http.status_code") {
-          statusCode = attribute.value.intValue;
-	        if (!acceptableCodeBeginnings.includes(String(statusCode)[0])) traceContainsErrors = true
-        } else if (attribute.key === "http.host") {
-          host = attribute.value.stringValue;
-        }
-      });
+      if (instrumentationLibrary.includes("http")) {
+        span.attributes.forEach(attribute => {
+          if (attribute.key === "http.method") {
+            httpMethod = attribute.value.stringValue;
+          } else if (attribute.key === "http.target") {
+            const value = attribute.value.stringValue;
+            endpoint = value;
+          } else if (attribute.key === "http.status_code") {
+            statusCode = attribute.value.intValue;
+          } else if (attribute.key === "http.host") {
+            host = attribute.value.stringValue;
+          }
+        });
+      }
 
       // Filter out traces from the metrics endpoint
       if (endpoint === "/v1/metrics") { return }
@@ -102,7 +120,7 @@ app.post('/v1/traces', async (req, res) => {
       if (span.parentSpanId === undefined) {
         const traceLatency = spanLatency;
 
-        const values = [span.traceId, traceLatency, httpMethod, endpoint, span.spanId, startTimestamp, host, traceContainsErrors];
+        const values = [span.traceId, traceLatency, httpMethod, endpoint, span.spanId, startTimestamp, host, errorInTheTrace[span.traceId]];
 
         client.query(createTraceText, values, (err, res) => {
           if (err) {
@@ -119,7 +137,6 @@ app.post('/v1/traces', async (req, res) => {
 })
 
 app.post('/v1/metrics', (req, res) => {
-  console.log("A metric has hit me!")
   if (!req.body.resourceMetrics[0]) return;
 
   const allMetricsArray = req.body.resourceMetrics[0].instrumentationLibraryMetrics[0].metrics
